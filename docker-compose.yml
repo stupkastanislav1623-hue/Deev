@@ -1,0 +1,92 @@
+version: '3.8'
+
+services:
+  # Frontend - Nginx
+  frontend:
+    build: ./frontend
+    container_name: micro-frontend
+    ports:
+      - "80:80"
+    networks:
+      - app-network
+    depends_on:
+      - backend
+    restart: unless-stopped
+
+  # Backend - PHP-FPM API
+  backend:
+    build: ./backend
+    container_name: micro-backend
+    ports:
+      - "9000:9000"
+    environment:
+      DB_HOST: database
+      DB_NAME: app_db
+      DB_USER: app_user
+      DB_PASSWORD: secret
+      REDIS_HOST: redis
+    volumes:
+      - ./backend:/var/www/html
+    networks:
+      - app-network
+    depends_on:
+      - database
+      - redis
+    restart: unless-stopped
+
+  # Database - MySQL
+  database:
+    image: mysql:8.0
+    container_name: micro-database
+    environment:
+      MYSQL_ROOT_PASSWORD: rootpass
+      MYSQL_DATABASE: app_db
+      MYSQL_USER: app_user
+      MYSQL_PASSWORD: secret
+    ports:
+      - "3306:3306"
+    volumes:
+      - db-data:/var/lib/mysql
+      - ./database/init.sql:/docker-entrypoint-initdb.d/init.sql
+    networks:
+      - app-network
+    restart: unless-stopped
+
+  # Redis Cache
+  redis:
+    image: redis:7.2-alpine
+    container_name: micro-redis
+    ports:
+      - "6379:6379"
+    volumes:
+      - redis-data:/data
+    networks:
+      - app-network
+    restart: unless-stopped
+
+  # phpMyAdmin (опціонально)
+  phpmyadmin:
+    image: phpmyadmin/phpmyadmin
+    container_name: micro-phpmyadmin
+    environment:
+      PMA_HOST: database
+      PMA_PORT: 3306
+      PMA_USER: app_user
+      PMA_PASSWORD: secret
+    ports:
+      - "8080:80"
+    networks:
+      - app-network
+    depends_on:
+      - database
+    restart: unless-stopped
+
+# Мережі
+networks:
+  app-network:
+    driver: bridge
+
+# Volumes для збереження даних
+volumes:
+  db-data:
+  redis-data:
