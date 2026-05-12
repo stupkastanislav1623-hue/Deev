@@ -1,0 +1,28 @@
+﻿apiVersion: v1
+kind: Namespace
+metadata:
+  name: argocd
+---
+apiVersion: source.toolkit.fluxcd.io/v1beta2
+kind: GitRepository
+metadata:
+  name: myapp-source
+  namespace: argocd
+spec:
+  interval: 1m
+  url: https://github.com/stupkastanislav1623-hue/Deev.git
+  ref:
+    branch: main
+---
+apiVersion: kustomize.toolkit.io/v1beta1
+kind: Kustomization
+metadata:
+  name: myapp
+  namespace: argocd
+spec:
+  interval: 5m
+  path: ./argocd/apps/myapp/overlays/production
+  prune: true
+  sourceRef:
+    kind: GitRepository
+    name: myapp-source

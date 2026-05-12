@@ -1,0 +1,108 @@
+﻿# Production конфігурація для Argo CD
+replicaCount: 3
+
+frontend:
+  enabled: true
+  name: frontend
+  replicaCount: 3
+  image:
+    repository: uyhyuyugyiuyg/myapp-frontend
+    tag: latest
+    pullPolicy: IfNotPresent
+  service:
+    type: ClusterIP
+    port: 80
+    targetPort: 80
+  resources:
+    requests:
+      memory: "128Mi"
+      cpu: "100m"
+    limits:
+      memory: "256Mi"
+      cpu: "200m"
+  autoscaling:
+    enabled: true
+    minReplicas: 3
+    maxReplicas: 10
+    targetCPUUtilizationPercentage: 60
+
+backend:
+  enabled: true
+  name: backend
+  replicaCount: 3
+  image:
+    repository: uyhyuyugyiuyg/myapp-backend
+    tag: latest
+    pullPolicy: IfNotPresent
+  service:
+    type: ClusterIP
+    port: 9000
+    targetPort: 9000
+  resources:
+    requests:
+      memory: "256Mi"
+      cpu: "200m"
+    limits:
+      memory: "512Mi"
+      cpu: "400m"
+  autoscaling:
+    enabled: true
+    minReplicas: 3
+    maxReplicas: 10
+    targetCPUUtilizationPercentage: 60
+  env:
+    DB_HOST: database
+    DB_PORT: "3306"
+    DB_NAME: app_db
+    DB_USER: app_user
+
+database:
+  enabled: true
+  name: database
+  replicaCount: 1
+  image:
+    repository: mysql
+    tag: "8.0"
+  service:
+    type: ClusterIP
+    port: 3306
+    targetPort: 3306
+  resources:
+    requests:
+      memory: "512Mi"
+      cpu: "250m"
+    limits:
+      memory: "1Gi"
+      cpu: "500m"
+  persistence:
+    enabled: true
+    size: 50Gi
+    storageClass: standard
+  mysql:
+    rootPassword: "rootpass123"
+    database: app_db
+    user: app_user
+    password: "secret123"
+
+ingress:
+  enabled: true
+  className: nginx
+  annotations:
+    nginx.ingress.kubernetes.io/ssl-redirect: "false"
+  hosts:
+    - host: app.127.0.0.1.nip.io
+      paths:
+        - path: /
+          pathType: Prefix
+          backend:
+            service:
+              name: frontend
+              port:
+                number: 80
+        - path: /api
+          pathType: Prefix
+          backend:
+            service:
+              name: backend
+              port:
+                number: 9000
